@@ -6,6 +6,7 @@ import { sign, verify } from '../functions/_lib/security.js';
 import { encryptStatelessTokenBundle as encrypt, decryptStatelessTokenBundle as decrypt } from '../functions/_lib/core.js';
 import { onRequestGet as go } from '../functions/go/feeddoctor.js';
 import { onRequestGet as success } from '../functions/pro/success.js';
+import { onRequestPost as waitlist } from '../functions/api/waitlist.js';
 import { onRequest as mcp } from '../functions/mcp.js';
 import { onRequest as middleware } from '../functions/_middleware.js';
 import { isPro } from '../functions/_lib/stripe.js';
@@ -50,16 +51,22 @@ test('refresh happens only for expired access tokens and preserves bundle expira
     const r=await refresh(p,env);assert.equal(r.googleAccessToken,'new-access');assert.equal(r.googleRefreshToken,'rotated');assert.equal(r.exp,123);await refresh(r,env);assert.equal(calls,1);
   });
 });
-test('go cleans src and forwards client_reference_id to the configured Stripe link',async()=>{
+test('go sends to the waitlist with cleaned src, never Stripe',async()=>{
   const res=await go(ctx('/go/feeddoctor?src=GLaMa!_a-b',{env:{...env,STRIPE_PAYMENT_LINK:'https://buy.stripe.com/test'}}));
-  assert.equal(res.status,302);assert.equal(new URL(res.headers.get('location')).searchParams.get('client_reference_id'),'glama_a-b');
-  const direct=await go(ctx('/go/feeddoctor',{env:{...env,STRIPE_PAYMENT_LINK:'https://buy.stripe.com/test'}}));assert.equal(new URL(direct.headers.get('location')).searchParams.get('client_reference_id'),'direct');
+  assert.equal(res.status,302);assert.equal(res.headers.get('location'),'/pro?src=glama_a-b#waitlist');
 });
-test('checkout activation requires paid subscription and signs the customer reference',async()=>{
-  await mockFetch(async()=>Response.json({payment_status:'paid',mode:'subscription',subscription:'sub_test',customer:'cus_test'}),async()=>{
-    const res=await success(ctx('/pro/success?session_id=cs_test_123',{env:{...env,STRIPE_SECRET_KEY:'test-stripe'}}));assert.equal(res.status,200);assert.match(await res.text(),/Reconnect Google to activate Pro/);
+test('checkout success route is closed and redirects to the waitlist',async()=>{
+  const res=await success(ctx('/pro/success?session_id=cs_test_123'));assert.equal(res.status,302);assert.match(res.headers.get('location'),/waitlist/);
+});
+test('waitlist stores email+src in MailerLite and fires feeddoctor-waitlist beacon',async()=>{
+  const pending=[],calls=[];
+  await mockFetch(async(url,init)=>{calls.push({url:String(url),body:init&&init.body});return Response.json({data:{}});},async()=>{
+    const req=new Request('https://feeds.theownersdesk.net/api/waitlist',{method:'POST',headers:{'content-type':'application/json','user-agent':'Mozilla/5.0 AppleWebKit/537.36 Chrome/130.0 Safari/537.36','accept-language':'en-US','sec-fetch-mode':'cors','sec-ch-ua':'Chromium'},body:JSON.stringify({email:'a@b.co',src:'glama'})});
+    const res=await waitlist({request:req,env:{MAILERLITE_TOKEN:'x'},waitUntil:p=>pending.push(p)});
+    assert.equal(res.status,200);await Promise.all(pending);
+    const ml=calls.find(c=>c.url.includes('mailerlite'));assert.match(ml.body,/203206605857096945/);assert.match(ml.body,/feeddoctor-glama/);
+    assert.ok(calls.some(c=>c.url.includes('feeddoctor-waitlist%3Asrc%3Aglama')));
   });
-  await mockFetch(async()=>Response.json({payment_status:'unpaid'}),async()=>assert.equal((await success(ctx('/pro/success?session_id=cs_test_123',{env:{...env,STRIPE_SECRET_KEY:'test-stripe'}}))).status,400));
 });
 test('hosted MCP rejects base64 and raw tokens, and gates all four Pro tools without fetching',async()=>{
   for(const token of ['fdmcp_b64_e30','raw-token']) {
@@ -109,10 +116,4 @@ test('paid subscription unlocks a Pro tool; invalid Origin is refused',async()=>
   });
   const hostile=request();hostile.headers.set('Origin','https://other.invalid');assert.equal((await mcp({request:hostile,env:paidEnv})).status,403);
 });
-test('beacon click keeps the shared endpoint and bv daily-hash header format',async()=>{
-  const pending=[],calls=[];
-  await mockFetch(async(url,init)=>{calls.push({url:String(url),ua:init.headers['user-agent']});return new Response('ok');},async()=>{
-    await go(ctx('/go/feeddoctor?src=glama',{env:{STRIPE_PAYMENT_LINK:'https://buy.stripe.com/test'},waitUntil:p=>pending.push(p),request:new Request('https://feeds.theownersdesk.net/go/feeddoctor?src=glama',{headers:{'sec-fetch-site':'same-origin','user-agent':'Mozilla/5.0 AppleWebKit/537.36 Chrome/130.0 Safari/537.36','accept-language':'en-US','sec-fetch-mode':'navigate','sec-ch-ua':'Chromium'}})}));
-    await Promise.all(pending);assert.ok(calls.some(c=>c.url.includes('site=feeddoctor-click%3A%2Fcheckout-start')));assert.ok(calls.every(c=>/^bv:[0-9a-f]{16}$/.test(c.ua)));
-  });
-});
+
