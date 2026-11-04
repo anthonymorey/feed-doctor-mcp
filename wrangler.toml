@@ -1,0 +1,4 @@
+name = "feed-doctor"
+pages_build_output_dir = "./pages"
+compatibility_date = "2026-11-04"
+compatibility_flags = ["nodejs_compat"]

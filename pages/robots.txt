@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /oauth
+Disallow: /connect
+Disallow: /go
+Disallow: /mcp
+Disallow: /pro/success
+Disallow: /dev
+Sitemap: https://feeds.theownersdesk.net/sitemap.xml

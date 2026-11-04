@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "net.theownersdesk.feeds/feed-doctor-mcp",
+  "title": "FeedDoctor MCP \u2014 Google & Microsoft Shopping Feed Diagnostics",
+  "description": "Read-only, stateless MCP server combining Google Merchant API v1, Microsoft Merchant Center Content API, and live landing-page schema checks to diagnose product disapprovals.",
+  "version": "0.1.0",
+  "websiteUrl": "https://feeds.theownersdesk.net",
+  "repository": {
+    "url": "https://github.com/anthonymorey/feed-doctor-mcp",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://feeds.theownersdesk.net/mcp?src=mcp-reg"
+    }
+  ]
+}

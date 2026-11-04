@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Privacy — FeedDoctor</title><meta name="description" content="How FeedDoctor handles OAuth tokens, merchant data, operational logs, and payments."><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/style.css"><script src="/src.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a>
+<header><a href="/" aria-label="FeedDoctor home">FeedDoctor<span aria-hidden="true"> ↗</span></a>
+<nav aria-label="Main navigation"><a href="/pro">Pro</a><a href="/billing">Billing</a><a href="mailto:support@theownersdesk.net">Support</a></nav>
+</header>
+<main id="main">
+<h1>Privacy</h1>
+<p>Effective November 4, 2026. FeedDoctor is operated by AUSSIE-AI LTD, Companies House no. 17193460, the data controller. Contact <a href="mailto:support@theownersdesk.net">support@theownersdesk.net</a>.</p>
+<p>AUSSIE-AI LTD is registered with the UK Information Commissioner's Office, no. ZC277836</p>
+<h2>What we process</h2>
+<p>When you connect, we process OAuth authorization codes, access tokens, refresh tokens, and merchant account and product data needed for the requested diagnostics. We do not request Google profile or email scopes. Credentials are encrypted inside your own bearer token, not stored by us in a database. They are decrypted in memory to serve requests. The bundle expires within 30 days. Your MCP client holds the token and receives diagnostic results; its own privacy policy applies.</p>
+<p>We use a temporary Secure, HttpOnly cookie for up to 10 minutes to protect the OAuth connection against cross-site request forgery. It is cleared after a verified callback. It is not an analytics cookie.</p>
+<h2>Service providers and logs</h2>
+<p>Cloudflare hosts the service and may process request metadata, IP addresses, and operational or security logs under its retention settings. OAuth callback URLs include temporary codes; Pro success URLs include checkout references. We do not intentionally log tokens or response bodies. Operators must keep sensitive query strings and authorization headers out of application logging.</p>
+<p>Stripe processes payments, billing information, subscriptions, and customer portal access. We do not receive your card details. A Stripe customer identifier is included in Pro bearer tokens to check subscription status. Stripe maintains payment records under its own retention requirements. We have no merchant-data database.</p>
+<h2>Analytics</h2>
+<p>Our beacon counts page views and checkout clicks, including the source label in a URL's src parameter, without analytics cookies. The function derives a daily hash from IP address and user agent and sends that pseudonymous hash and a page or event key to the beacon. The beacon receives requests from the hosting service. Counts distinguish test traffic and crawlers. Do not put personal information in source labels.</p>
+<h2>Use and sharing</h2>
+<p>We process data to provide the service you request, administer subscriptions, and protect and measure service operation. We do not sell Google user data or use it for advertising. FeedDoctor's use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.</p>
+<p>Merchant information is used only to provide the diagnostics you request and is returned to your chosen MCP client. Infrastructure and payment providers may process data outside your country, subject to their applicable safeguards.</p>
+<h2>Revoke access and your rights</h2>
+<p>Revoke FeedDoctor in your Google Account third-party connections or Microsoft account app permissions. Remove the bearer token from your MCP client and delete saved copies. Revoke provider access promptly if a token is exposed. Canceling a subscription does not revoke OAuth consent. Reconnecting does not invalidate older bundles; revoke at the provider to withdraw their access.</p>
+<p>Contact support to request access, correction, deletion, or restriction of data we hold, or to object to processing where applicable. We cannot delete local copies held by your MCP client. Billing and security records may remain where required. You may raise privacy concerns with the UK Information Commissioner's Office or your local authority.</p>
+</main>
+<footer>© 2026 AUSSIE-AI LTD · Company no. 17193460 · ICO reg. ZC277836
+<p><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="mailto:support@theownersdesk.net">Contact support</a></p>
+</footer></body></html>

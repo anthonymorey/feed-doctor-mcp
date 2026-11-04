@@ -1,0 +1,57 @@
+{
+  "name": "feed-doctor-mcp",
+  "version": "0.1.0",
+  "description": "Read-only, stateless MCP connector for Google Merchant Center (Merchant API v1) and Microsoft Merchant Center (Bing Content API) product feeds with cross-platform disapproval diagnostics and live landing-page schema checks.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Aussie-AI Ltd",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anthonymorey/feed-doctor-mcp.git"
+  },
+  "bin": {
+    "feed-doctor-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./stdio": {
+      "import": "./dist/stdio.js",
+      "types": "./dist/stdio.d.ts"
+    },
+    "./http": {
+      "import": "./dist/http.js",
+      "types": "./dist/http.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "server.json"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build:pages && node --test --test-isolation=none dist/test/*.test.js pages/dev/test.mjs",
+    "start": "node dist/cli.js stdio",
+    "start:http": "node dist/cli.js http",
+    "build:pages": "npm run build && node scripts/build-pages.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@types/node": "26.6.5",
+    "typescript": "6.0.3"
+  }
+}

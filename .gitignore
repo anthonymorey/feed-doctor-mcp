@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+.DS_Store
+
+.dev.vars
+.dev.vars.*
+.wrangler/
+internal/
+/functions/
+pages/functions/_lib/fd/
