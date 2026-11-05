@@ -4,7 +4,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { connect, callback, providers, refresh } from '../functions/_lib/oauth.js';
 import { sign, verify } from '../functions/_lib/security.js';
 import { encryptStatelessTokenBundle as encrypt, decryptStatelessTokenBundle as decrypt } from '../functions/_lib/core.js';
-import { onRequestGet as go } from '../functions/go/feeddoctor.js';
+import { onRequestGet as go, onRequestHead as goHead } from '../functions/go/feeddoctor.js';
 import { onRequestGet as success } from '../functions/pro/success.js';
 import { onRequestPost as waitlist } from '../functions/api/waitlist.js';
 import { onRequest as mcp } from '../functions/mcp.js';
@@ -51,12 +51,38 @@ test('refresh happens only for expired access tokens and preserves bundle expira
     const r=await refresh(p,env);assert.equal(r.googleAccessToken,'new-access');assert.equal(r.googleRefreshToken,'rotated');assert.equal(r.exp,123);await refresh(r,env);assert.equal(calls,1);
   });
 });
-test('go sends to the waitlist with cleaned src, never Stripe',async()=>{
-  const res=await go(ctx('/go/feeddoctor?src=GLaMa!_a-b',{env:{...env,STRIPE_PAYMENT_LINK:'https://buy.stripe.com/test'}}));
-  assert.equal(res.status,302);assert.equal(res.headers.get('location'),'/pro?src=glama_a-b#waitlist');
+test('go with STRIPE_PAYMENT_LINK forwards cleaned src as client_reference_id to Stripe (GET and HEAD)',async()=>{
+  const stripeEnv={...env,STRIPE_PAYMENT_LINK:'https://buy.stripe.com/test_x'};
+  for(const [handler,method] of [[go,'GET'],[goHead,'HEAD']]) {
+    const res=await handler(ctx('/go/feeddoctor?src=test-qa',{env:stripeEnv,request:new Request('https://feeds.theownersdesk.net/go/feeddoctor?src=test-qa',{method})}));
+    assert.equal(res.status,302,method);const loc=new URL(res.headers.get('location'));assert.equal(loc.hostname,'buy.stripe.com',method);assert.equal(loc.searchParams.get('client_reference_id'),'test-qa',method);
+  }
+  const cleaned=await go(ctx('/go/feeddoctor?src=GLaMa!_a-b',{env:stripeEnv}));assert.equal(new URL(cleaned.headers.get('location')).searchParams.get('client_reference_id'),'glama_a-b');
+  const direct=await go(ctx('/go/feeddoctor',{env:stripeEnv}));assert.equal(new URL(direct.headers.get('location')).searchParams.get('client_reference_id'),'direct');
+  await assert.rejects(go(ctx('/go/feeddoctor',{env:{...env,STRIPE_PAYMENT_LINK:'https://evil.example/pay'}})));
 });
-test('checkout success route is closed and redirects to the waitlist',async()=>{
+test('go without STRIPE_PAYMENT_LINK still sends to the waitlist with cleaned src (GET and HEAD)',async()=>{
+  for(const handler of [go,goHead]) {const res=await handler(ctx('/go/feeddoctor?src=GLaMa!_a-b'));assert.equal(res.status,302);assert.equal(res.headers.get('location'),'/pro?src=glama_a-b#waitlist');}
+});
+test('checkout success redirects to the waitlist until STRIPE_PAYMENT_LINK is set',async()=>{
   const res=await success(ctx('/pro/success?session_id=cs_test_123'));assert.equal(res.status,302);assert.match(res.headers.get('location'),/waitlist/);
+});
+test('checkout activation requires paid subscription and offers Google reconnect only',async()=>{
+  const openEnv={...env,STRIPE_SECRET_KEY:'test-stripe',STRIPE_PAYMENT_LINK:'https://buy.stripe.com/test_x'};
+  await mockFetch(async()=>Response.json({payment_status:'paid',mode:'subscription',subscription:'sub_test',customer:'cus_test'}),async()=>{
+    const res=await success(ctx('/pro/success?session_id=cs_test_123',{env:openEnv}));assert.equal(res.status,200);const html=await res.text();
+    assert.match(html,/Reconnect Google to activate Pro/);assert.ok(!html.includes('/connect/microsoft'));assert.match(html,/Microsoft Merchant Center support is coming soon\./);
+  });
+  await mockFetch(async()=>Response.json({payment_status:'unpaid'}),async()=>assert.equal((await success(ctx('/pro/success?session_id=cs_test_123',{env:openEnv}))).status,400));
+});
+test('open-checkout HTML: $29 Pro via /go/feeddoctor, no waitlist, Microsoft only as coming soon',async()=>{
+  for(const name of ['index.html','pro.html']) {
+    const html=await readFile(new URL('../'+name,import.meta.url),'utf8');
+    assert.ok(html.includes('$29'),name);assert.ok(html.includes('href="/go/feeddoctor"'),name);assert.ok(html.includes('href="/billing"'),name);
+    assert.ok(!/waitlist|opening soon/i.test(html),name);assert.ok(!html.includes('href="/connect/microsoft"'),name);
+    assert.match(html,/Microsoft[^<]{0,80}coming soon/i,name);
+  }
+  for(const name of ['terms.html','privacy.html']) {const html=await readFile(new URL('../'+name,import.meta.url),'utf8');assert.ok(html.includes('href="/billing"'),name);assert.ok(!html.includes('href="/connect/microsoft"'),name);}
 });
 test('waitlist stores email+src in MailerLite and fires feeddoctor-waitlist beacon',async()=>{
   const pending=[],calls=[];
@@ -117,3 +143,10 @@ test('paid subscription unlocks a Pro tool; invalid Origin is refused',async()=>
   const hostile=request();hostile.headers.set('Origin','https://other.invalid');assert.equal((await mcp({request:hostile,env:paidEnv})).status,403);
 });
 
+test('beacon click keeps the shared endpoint and bv daily-hash header format',async()=>{
+  const pending=[],calls=[];
+  await mockFetch(async(url,init)=>{calls.push({url:String(url),ua:init.headers['user-agent']});return new Response('ok');},async()=>{
+    await go(ctx('/go/feeddoctor?src=glama',{env:{STRIPE_PAYMENT_LINK:'https://buy.stripe.com/test'},waitUntil:p=>pending.push(p),request:new Request('https://feeds.theownersdesk.net/go/feeddoctor?src=glama',{headers:{'sec-fetch-site':'same-origin','user-agent':'Mozilla/5.0 AppleWebKit/537.36 Chrome/130.0 Safari/537.36','accept-language':'en-US','sec-fetch-mode':'navigate','sec-ch-ua':'Chromium'}})}));
+    await Promise.all(pending);assert.ok(calls.some(c=>c.url.includes('site=feeddoctor-click%3A%2Fcheckout-start')));assert.ok(calls.every(c=>/^bv:[0-9a-f]{16}$/.test(c.ua)));
+  });
+});
