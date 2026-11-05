@@ -1,26 +1,27 @@
 <!doctype html>
-<html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Read-only merchant feed diagnostics — FeedDoctor</title><meta name="description" content="Rules-based Google and Microsoft Merchant Center diagnostics for MCP clients. Start free; Pro is opening soon."><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/style.css"><script src="/src.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a>
+<html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Read-only Google Merchant Center feed diagnostics — FeedDoctor</title><meta name="description" content="Rules-based Google Merchant Center diagnostics for MCP clients; Microsoft Merchant Center (Bing) coming soon. Start free; Pro is opening soon."><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/style.css"><script src="/src.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a>
 <header><a href="/" aria-label="FeedDoctor home">FeedDoctor<span aria-hidden="true"> ↗</span></a>
 <nav aria-label="Main navigation"><a href="/pro">Pro</a><a href="mailto:support@theownersdesk.net">Support</a></nav>
 </header>
 <main id="main">
 <p class="eyebrow">Your feeds. A clearer diagnosis.</p>
-<h1>FeedDoctor — read-only Google &amp; Microsoft Merchant Center feed diagnostics for Claude, Cursor &amp; any MCP client</h1>
+<h1>FeedDoctor — read-only Google Merchant Center feed diagnostics for Claude, Cursor &amp; any MCP client. Microsoft Merchant Center (Bing) coming soon.</h1>
 <p class="lede">Find the issues behind disapproved products, understand what needs attention, and take a fix plan back to your merchant tools.</p>
-<div class="actions"><a class="button" href="/connect/google">Connect Google Merchant Center</a><a class="button secondary" href="/connect/microsoft">Connect Microsoft Merchant Center</a></div>
-<p>Two tools free. No card required. Pro, with four more diagnostic tools, is opening soon.</p>
+<div class="actions"><a class="button" href="/connect/google">Connect Google Merchant Center</a></div>
+<p>Microsoft Merchant Center (Bing): coming soon</p>
+<p>Two tools free. No card required. Pro, with three more Google diagnostic tools, is opening soon; a Google + Bing cross-check is coming soon.</p>
 <section>
 <h2>From scattered warnings to a practical next step</h2>
 <p>Merchant dashboards give you the source data. FeedDoctor brings that data into your MCP client and applies a fixed set of diagnostic rules. You review the findings and make changes yourself.</p>
 <p class="note">Read-only by design: merchant requests are GET/list calls. FeedDoctor never edits your products, changes campaigns, or submits fixes.</p>
 </section>
 <section>
-<h2>Six tools, one connection</h2>
+<h2>Five tools today, one connection</h2>
 <div class="grid">
 <article class="card">
 <p class="eyebrow">Free</p>
 <h3><code>list_accounts</code></h3>
-<p>See your accessible Google accounts or Microsoft stores.</p>
+<p>See your accessible Google Merchant Center accounts. Microsoft stores are coming soon.</p>
 </article>
 <article class="card">
 <p class="eyebrow">Free</p>
@@ -38,9 +39,9 @@
 <p>Inspect a SKU and optionally check its public landing-page price and availability.</p>
 </article>
 <article class="card">
-<p class="eyebrow">Pro</p>
+<p class="eyebrow">Pro · Coming soon</p>
 <h3><code>compare_platforms</code></h3>
-<p>Compare Google and Microsoft product attributes when both credentials are available.</p>
+<p>Coming soon — needs Microsoft Merchant Center support. Will cross-check Google and Bing product attributes.</p>
 </article>
 <article class="card">
 <p class="eyebrow">Pro</p>
@@ -50,8 +51,8 @@
 </section>
 <section>
 <h2>Connect in three steps</h2>
-<ol><li>Authorize your Google or Microsoft merchant account.</li><li>Save your encrypted bearer token and add the MCP URL to your client.</li><li>Ask your client to run a feed health summary, then inspect the results.</li></ol>
-<p>Hosted connections currently contain one provider at a time. Cross-platform comparison requires a bundle containing both providers, supported by self-hosted configuration. A single-provider hosted connection does not provide cross-platform comparisons.</p>
+<ol><li>Authorize your Google Merchant Center account.</li><li>Save your encrypted bearer token and add the MCP URL to your client.</li><li>Ask your client to run a feed health summary, then inspect the results.</li></ol>
+<p>Hosted connections currently support Google Merchant Center. Microsoft Merchant Center (Bing) support, and the Google + Bing cross-check, are coming soon.</p>
 </section>
 <section>
 <h2>Choose the depth you need</h2>
@@ -64,13 +65,13 @@
 <article class="card">
 <h3>Pro</h3>
 <p class="price">Opening soon</p>
-<p>All six tools, including product-level diagnostics and prioritized fix plans.</p><a class="button" href="/pro#waitlist">Join the Pro waitlist</a>
+<p>All Google tools, including product-level diagnostics, landing-page mismatch checks and ranked fix plans. Google + Bing cross-check is coming soon.</p><a class="button" href="/pro#waitlist">Join the Pro waitlist</a>
 </article></div>
 </section>
 <section>
 <h2>Before you connect</h2>
 <details><summary>Can FeedDoctor change my merchant account?</summary>
-<p>No. Google does not provide a read-only Merchant scope, so its consent screen may mention broader access. FeedDoctor uses GET/list calls only. Microsoft also uses its merchant management scope for reading data.</p></details>
+<p>No. Google does not provide a read-only Merchant scope, so its consent screen may mention broader access. FeedDoctor uses GET/list calls only. When Microsoft support opens, it will also use Microsoft’s merchant management scope for reading data only.</p></details>
 <details><summary>Where are my tokens stored?</summary>
 <p>Access and refresh tokens are encrypted inside the bearer token you hold. We have no token database. Requests are processed in memory. Never share your bearer token or configuration publicly.</p></details>
 <details><summary>Does it fix products automatically?</summary>
@@ -80,11 +81,12 @@
 <details><summary>Which clients work?</summary>
 <p>Clients supporting Streamable HTTP with bearer authentication can connect directly. A Node.js bridge configuration is also shown for Claude Desktop versions requiring local server configuration.</p></details>
 <details><summary>Can I use the merchant dashboards instead?</summary>
-<p>Yes. Google and Microsoft dashboards remain the source of truth. FeedDoctor is for people who want the diagnostics available through their MCP workflow.</p></details>
+<p>Yes. Merchant Center dashboards remain the source of truth. FeedDoctor is for people who want the diagnostics available through their MCP workflow.</p></details>
 </section>
 <section>
 <h2>Start with a feed health summary</h2>
-<div class="actions"><a class="button" href="/connect/google">Connect Google Merchant Center</a><a class="button secondary" href="/connect/microsoft">Connect Microsoft Merchant Center</a></div>
+<div class="actions"><a class="button" href="/connect/google">Connect Google Merchant Center</a></div>
+<p>Microsoft Merchant Center (Bing): coming soon</p>
 </section>
 </main>
 <footer>© 2026 AUSSIE-AI LTD · Company no. 17193460 · ICO reg. ZC277836
