@@ -129,6 +129,16 @@ describe('Google Merchant API v1 migration', () => {
     }
   });
 
+  it('maps the unregistered Cloud project 401 to an operator-setup message, not a reconnect prompt', async () => {
+    const body = JSON.stringify({ error: { code: 401, status: 'UNAUTHENTICATED', message: 'GCP project with id p and number 1 is not registered with the merchant account. Please follow these steps' } });
+    await withServer(errorFetch(401, body), async (client) => {
+      const res = await client.callTool({ name: 'list_accounts', arguments: { platform: 'google' } });
+      assert.equal(res.isError, true);
+      assert.match(toolText(res), /developer registration pending/);
+      assert.ok(!toolText(res).includes('Reconnect'));
+    });
+  });
+
   it('client throws MerchantApiError with parsed status and reason', async () => {
     const client = new GoogleMerchantClient({
       accessToken: 'sensitive',

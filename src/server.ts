@@ -91,6 +91,9 @@ const NO_GOOGLE_ACCOUNTS_WARNING =
 function toolErrorMessage(err: unknown): string {
   if (!(err instanceof MerchantApiError)) return GENERIC_TOOL_ERROR;
   const codes = [err.status, err.reason];
+  if (codes.includes('GCP_NOT_REGISTERED')) {
+    return "FeedDoctor's Google Merchant API access is still being set up by the operator (developer registration pending). Your connection is fine; please try again later.";
+  }
   if (err.httpStatus === 401 || codes.includes('UNAUTHENTICATED')) {
     return 'Google rejected the connection. Reconnect at https://feeds.theownersdesk.net/connect/google.';
   }

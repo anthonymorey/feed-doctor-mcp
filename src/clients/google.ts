@@ -158,11 +158,16 @@ export async function merchantApiErrorFromResponse(
   let reason: string | undefined;
   try {
     const body = (await response.json()) as {
-      error?: { status?: unknown; details?: Array<{ reason?: unknown }> };
+      error?: { status?: unknown; message?: unknown; details?: Array<{ reason?: unknown }> };
     };
+    // Operational log: HTTP status, Google status/reason and Google's own message only (no token, URL or body).
+    const msg = typeof body?.error?.message === 'string' ? body.error.message.slice(0, 300) : '';
+    console.warn('merchant_api_error', response.status, body?.error?.status ?? '', msg);
     if (typeof body?.error?.status === 'string') status = body.error.status;
     const first = body?.error?.details?.find((d) => typeof d?.reason === 'string');
     if (first) reason = first.reason as string;
+    // Merchant API rejects calls from a Cloud project that has not done the one-time developer registration (registerGcp).
+    if (/not registered with the merchant account/i.test(msg)) reason = 'GCP_NOT_REGISTERED';
   } catch {
     // Non-JSON body (e.g. HTML 404); status code alone is enough.
   }
