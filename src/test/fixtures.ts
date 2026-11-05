@@ -86,13 +86,12 @@ export const MOCK_GOOGLE_PRODUCTS: GoogleProductRaw[] = [
     offerId: 'SKU-101',
     contentLanguage: 'en',
     feedLabel: 'US',
-    channel: 'ONLINE',
-    attributes: {
+    productAttributes: {
       title: 'TrailRunner Pro GTX Shoe',
       link: 'https://shop.acme-outdoor.example/products/trailrunner-pro',
       imageLink: 'https://shop.acme-outdoor.example/images/sku-101.jpg',
-      availability: 'in_stock',
-      condition: 'new',
+      availability: 'IN_STOCK',
+      condition: 'NEW',
       brand: 'AcmeOutdoor',
       gtin: ['00881234567891'],
       mpn: 'TR-GTX-101',
@@ -118,8 +117,7 @@ export const MOCK_GOOGLE_PRODUCTS: GoogleProductRaw[] = [
     offerId: 'SKU-102',
     contentLanguage: 'en',
     feedLabel: 'US',
-    channel: 'ONLINE',
-    attributes: {
+    productAttributes: {
       title: "Alpine Down Jacket - Men's",
       link: 'https://shop.acme-outdoor.example/products/alpine-down-jacket',
       imageLink: 'https://shop.acme-outdoor.example/images/sku-102-sale-badge.jpg',
@@ -163,12 +161,11 @@ export const MOCK_GOOGLE_PRODUCTS: GoogleProductRaw[] = [
     offerId: 'SKU-103',
     contentLanguage: 'en',
     feedLabel: 'US',
-    channel: 'ONLINE',
-    attributes: {
+    productAttributes: {
       title: 'Ultralight Carbon Trekking Poles',
       link: 'https://shop.acme-outdoor.example/products/trekking-poles',
       imageLink: 'https://shop.acme-outdoor.example/images/sku-103.jpg',
-      availability: 'in_stock',
+      availability: 'IN_STOCK',
       condition: 'new',
       brand: 'AcmeOutdoor',
       gtin: ['020000999888'],
@@ -206,6 +203,7 @@ export const MOCK_GOOGLE_PRODUCTS: GoogleProductRaw[] = [
   {
     name: 'accounts/77889900/products/en~US~SKU-104',
     offerId: 'SKU-104',
+    // Legacy (pre-v1) product shape: `attributes` + `channel`, kept for backward compatibility.
     contentLanguage: 'en',
     feedLabel: 'US',
     channel: 'ONLINE',
@@ -415,16 +413,18 @@ export function createMockFetch(): FetchLike {
       );
     }
 
-    // Google Merchant API v1 routes
-    if (url === 'https://merchantapi.googleapis.com/accounts/v1beta/accounts') {
+    // Google Merchant API v1 routes (matched on path; pageSize/pageToken query ignored)
+    const parsed = new URL(url);
+    const path =
+      parsed.origin === 'https://merchantapi.googleapis.com' ? parsed.pathname : '';
+    if (path === '/accounts/v1/accounts') {
       return new Response(JSON.stringify({ accounts: MOCK_GOOGLE_ACCOUNTS }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
     }
     if (
-      url ===
-      'https://merchantapi.googleapis.com/accounts/v1beta/accounts/77889900/issues'
+      path === '/accounts/v1/accounts/77889900/issues'
     ) {
       return new Response(
         JSON.stringify({ accountIssues: MOCK_GOOGLE_ACCOUNT_ISSUES }),
@@ -432,8 +432,7 @@ export function createMockFetch(): FetchLike {
       );
     }
     if (
-      url ===
-      'https://merchantapi.googleapis.com/datasources/v1beta/accounts/77889900/dataSources'
+      path === '/datasources/v1/accounts/77889900/dataSources'
     ) {
       return new Response(
         JSON.stringify({ dataSources: MOCK_GOOGLE_DATASOURCES }),
@@ -441,8 +440,7 @@ export function createMockFetch(): FetchLike {
       );
     }
     if (
-      url ===
-      'https://merchantapi.googleapis.com/products/v1beta/accounts/77889900/products'
+      path === '/products/v1/accounts/77889900/products'
     ) {
       return new Response(JSON.stringify({ products: MOCK_GOOGLE_PRODUCTS }), {
         status: 200,

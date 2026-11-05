@@ -3,6 +3,7 @@ import type {
   GoogleAccountRaw,
   GoogleDataSourceRaw,
   GooglePriceRaw,
+  GoogleProductAttributesRaw,
   GoogleProductRaw
 } from './clients/google.js';
 import type {
@@ -269,7 +270,7 @@ export function normalizeMicrosoftCatalog(
 
 function getOffendingValueFromGoogleAttributes(
   attrName: string | undefined,
-  attrs: GoogleProductRaw['attributes']
+  attrs: GoogleProductAttributesRaw | undefined
 ): string | undefined {
   if (!attrName || !attrs) return undefined;
   const key = attrName.toLowerCase();
@@ -291,7 +292,7 @@ function getOffendingValueFromGoogleAttributes(
 }
 
 export function normalizeGoogleProduct(raw: GoogleProductRaw): NormalizedProduct {
-  const attrs = raw.attributes ?? {};
+  const attrs = raw.productAttributes ?? raw.attributes ?? {};
   const sku =
     raw.offerId ||
     (raw.name ? raw.name.split('~').pop() || raw.name : 'UNKNOWN-SKU');
@@ -305,10 +306,13 @@ export function normalizeGoogleProduct(raw: GoogleProductRaw): NormalizedProduct
       issue.attribute,
       attrs
     );
+    // v1 NOT_IMPACTED issues do not affect serving; surface them as warnings.
+    const rawSeverity =
+      issue.severity?.toUpperCase() === 'NOT_IMPACTED' ? 'WARNING' : issue.severity;
     const diagnostic = diagnoseIssueCode({
       code: issue.code,
       platform: 'google',
-      rawSeverity: issue.severity,
+      rawSeverity,
       rawAttribute: issue.attribute,
       rawDescription: issue.detail || issue.description,
       actualOffendingValue,
@@ -391,7 +395,7 @@ export function normalizeGoogleProduct(raw: GoogleProductRaw): NormalizedProduct
     condition: normalizeCondition(attrs.condition),
     contentLanguage: raw.contentLanguage || 'en',
     targetCountry: raw.feedLabel || 'US',
-    channel: raw.channel || 'ONLINE',
+    channel: raw.channel || 'online',
     approvalStatus,
     issues,
     priceCompetitiveness,

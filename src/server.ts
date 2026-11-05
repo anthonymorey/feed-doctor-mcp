@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 import { resolveRequestCredentials } from './auth.js';
-import { GoogleMerchantClient } from './clients/google.js';
+import { GoogleMerchantClient, MerchantApiError } from './clients/google.js';
 import { fetchAndCheckLandingPage } from './clients/landing-page.js';
 import { MicrosoftMerchantClient } from './clients/microsoft.js';
 import {
@@ -79,6 +79,38 @@ function jsonToolResponse(payload: Record<string, unknown>) {
   };
 }
 
+const GENERIC_TOOL_ERROR =
+  'Unable to complete the request. Check your connection and try again.';
+const NO_GOOGLE_ACCOUNTS_WARNING =
+  'No Merchant Center account is linked to this Google login.';
+
+/**
+ * Maps a tool failure to a safe, actionable message. Only the HTTP status and
+ * Google's status/reason codes are inspected; tokens, bodies and URLs are never echoed.
+ */
+function toolErrorMessage(err: unknown): string {
+  if (!(err instanceof MerchantApiError)) return GENERIC_TOOL_ERROR;
+  const codes = [err.status, err.reason];
+  if (err.httpStatus === 401 || codes.includes('UNAUTHENTICATED')) {
+    return 'Google rejected the connection. Reconnect at https://feeds.theownersdesk.net/connect/google.';
+  }
+  if (err.httpStatus === 403) {
+    if (codes.includes('SERVICE_DISABLED')) {
+      return 'The Merchant API is not enabled for this FeedDoctor deployment. The operator has been notified.';
+    }
+    return 'This Google login does not have access to that Merchant Center account.';
+  }
+  if (err.httpStatus === 404) return 'Merchant Center resource not found.';
+  return `${GENERIC_TOOL_ERROR} (Google HTTP ${err.httpStatus})`;
+}
+
+function toolErrorResponse(err: unknown) {
+  return {
+    isError: true,
+    content: [{ type: 'text' as const, text: toolErrorMessage(err) }]
+  };
+}
+
 async function loadPlatformData(params: {
   creds: RequestCredentials;
   platformFilter?: 'google' | 'microsoft' | 'both';
@@ -120,6 +152,9 @@ async function loadPlatformData(params: {
     for (const acc of rawAccounts) {
       accounts.push(normalizeGoogleAccount(acc));
     }
+    if (rawAccounts.length === 0) {
+      warnings.push(NO_GOOGLE_ACCOUNTS_WARNING);
+    }
 
     const effectiveGoogleAccountId =
       params.googleAccountId ||
@@ -150,9 +185,10 @@ async function loadPlatformData(params: {
         }
       }
     } else if (
-      params.includeAccountIssues ||
-      params.includeDataSources ||
-      params.includeProducts
+      rawAccounts.length > 0 &&
+      (params.includeAccountIssues ||
+        params.includeDataSources ||
+        params.includeProducts)
     ) {
       warnings.push(
         'No Google Merchant Center account ID found or specified.'
@@ -292,8 +328,8 @@ export function createFeedDoctorServer(
           accounts: data.accounts,
           warnings: data.warnings
         });
-      } catch {
-        return { isError: true, content: [{ type: 'text' as const, text: 'Unable to complete the request. Check your connection and try again.' }] };
+      } catch (err) {
+        return toolErrorResponse(err);
       }
     }
   );
@@ -412,8 +448,8 @@ export function createFeedDoctorServer(
           crossPlatformDiscrepancyCount: crossDiscrepancies.length,
           warnings: data.warnings
         });
-      } catch {
-        return { isError: true, content: [{ type: 'text' as const, text: 'Unable to complete the request. Check your connection and try again.' }] };
+      } catch (err) {
+        return toolErrorResponse(err);
       }
     }
   );
@@ -531,8 +567,8 @@ export function createFeedDoctorServer(
           returnedProducts: limited.length,
           disapprovals: limited
         });
-      } catch {
-        return { isError: true, content: [{ type: 'text' as const, text: 'Unable to complete the request. Check your connection and try again.' }] };
+      } catch (err) {
+        return toolErrorResponse(err);
       }
     }
   );
@@ -657,8 +693,8 @@ export function createFeedDoctorServer(
           crossFeedAndLandingPageDiscrepancies: discrepancies,
           recommendedFixes: fixPlan
         });
-      } catch {
-        return { isError: true, content: [{ type: 'text' as const, text: 'Unable to complete the request. Check your connection and try again.' }] };
+      } catch (err) {
+        return toolErrorResponse(err);
       }
     }
   );
@@ -793,8 +829,8 @@ export function createFeedDoctorServer(
           discrepancies,
           warnings: data.warnings
         });
-      } catch {
-        return { isError: true, content: [{ type: 'text' as const, text: 'Unable to complete the request. Check your connection and try again.' }] };
+      } catch (err) {
+        return toolErrorResponse(err);
       }
     }
   );
@@ -905,8 +941,8 @@ export function createFeedDoctorServer(
           fixPlan: items,
           warnings: data.warnings
         });
-      } catch {
-        return { isError: true, content: [{ type: 'text' as const, text: 'Unable to complete the request. Check your connection and try again.' }] };
+      } catch (err) {
+        return toolErrorResponse(err);
       }
     }
   );

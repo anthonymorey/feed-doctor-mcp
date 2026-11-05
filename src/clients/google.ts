@@ -6,7 +6,7 @@ export interface GoogleAccountRaw {
   accountName?: string;
   homepage?: string;
   adultContent?: boolean;
-   aggregatorId?: string;
+  aggregatorId?: string;
 }
 
 export interface GoogleAccountIssueRaw {
@@ -71,7 +71,8 @@ export interface GooglePriceRaw {
 
 export interface GoogleItemLevelIssueRaw {
   code: string;
-  severity?: 'DISAPPROVED' | 'DEMOTED' | 'UNAFFECTED' | 'WARNING' | string;
+  // v1: NOT_IMPACTED | DEMOTED | DISAPPROVED (legacy fixtures may use UNAFFECTED / WARNING)
+  severity?: 'NOT_IMPACTED' | 'DISAPPROVED' | 'DEMOTED' | 'UNAFFECTED' | 'WARNING' | string;
   resolution?: string;
   attribute?: string;
   reportingContext?: string;
@@ -81,29 +82,35 @@ export interface GoogleItemLevelIssueRaw {
   applicableCountries?: string[];
 }
 
+export interface GoogleProductAttributesRaw {
+  title?: string;
+  description?: string;
+  link?: string;
+  imageLink?: string;
+  availability?: string;
+  condition?: string;
+  brand?: string;
+  gtin?: string | string[];
+  mpn?: string;
+  price?: GooglePriceRaw;
+  salePrice?: GooglePriceRaw;
+  shippingWeight?: {
+    value?: number;
+    unit?: string;
+  };
+}
+
 export interface GoogleProductRaw {
   name?: string; // "accounts/123456789/products/en~US~SKU-101"
   offerId?: string;
   contentLanguage?: string;
   feedLabel?: string;
+  /** Legacy (pre-v1) only; v1 products have no channel field. */
   channel?: string;
-  attributes?: {
-    title?: string;
-    description?: string;
-    link?: string;
-    imageLink?: string;
-    availability?: string;
-    condition?: string;
-    brand?: string;
-    gtin?: string | string[];
-    mpn?: string;
-    price?: GooglePriceRaw;
-    salePrice?: GooglePriceRaw;
-    shippingWeight?: {
-      value?: number;
-      unit?: string;
-    };
-  };
+  /** Merchant API v1 product attributes. */
+  productAttributes?: GoogleProductAttributesRaw;
+  /** Legacy (pre-v1) attribute container, kept for backward compatibility. */
+  attributes?: GoogleProductAttributesRaw;
   productStatus?: {
     destinationStatuses?: Array<{
       reportingContext?: string;
@@ -121,6 +128,46 @@ export interface GoogleProductRaw {
 }
 
 const GOOGLE_MERCHANT_API_BASE = 'https://merchantapi.googleapis.com';
+const PAGE_SIZE = 250;
+const MAX_ACCOUNT_PAGES = 5;
+const MAX_PRODUCT_PAGES = 4;
+
+/**
+ * Non-2xx response from a merchant API. Carries only the HTTP status and
+ * Google's machine-readable status / reason codes, never the raw body, URL or token.
+ */
+export class MerchantApiError extends Error {
+  readonly httpStatus: number;
+  readonly status?: string;
+  readonly reason?: string;
+
+  constructor(httpStatus: number, status?: string, reason?: string) {
+    super('Merchant service request failed.');
+    this.name = 'MerchantApiError';
+    this.httpStatus = httpStatus;
+    this.status = status;
+    this.reason = reason;
+  }
+}
+
+/** Parses Google's `{error:{status, details:[{reason}]}}` body when present. */
+export async function merchantApiErrorFromResponse(
+  response: Response
+): Promise<MerchantApiError> {
+  let status: string | undefined;
+  let reason: string | undefined;
+  try {
+    const body = (await response.json()) as {
+      error?: { status?: unknown; details?: Array<{ reason?: unknown }> };
+    };
+    if (typeof body?.error?.status === 'string') status = body.error.status;
+    const first = body?.error?.details?.find((d) => typeof d?.reason === 'string');
+    if (first) reason = first.reason as string;
+  } catch {
+    // Non-JSON body (e.g. HTML 404); status code alone is enough.
+  }
+  return new MerchantApiError(response.status, status, reason);
+}
 
 export class GoogleMerchantClient {
   private readonly accessToken: string;
@@ -147,23 +194,46 @@ export class GoogleMerchantClient {
     });
 
     if (!response.ok) {
-      throw new Error('Merchant service request failed.');
+      throw await merchantApiErrorFromResponse(response);
     }
 
     return (await response.json()) as T;
   }
 
+  private async listPaged<T>(
+    path: string,
+    key: string,
+    maxPages: number
+  ): Promise<T[]> {
+    const items: T[] = [];
+    let pageToken: string | undefined;
+    for (let page = 0; page < maxPages; page++) {
+      const query = new URLSearchParams({ pageSize: String(PAGE_SIZE) });
+      if (pageToken) query.set('pageToken', pageToken);
+      const data = await this.getJson<Record<string, unknown>>(`${path}?${query}`);
+      const pageItems = data?.[key];
+      if (Array.isArray(pageItems)) items.push(...(pageItems as T[]));
+      pageToken =
+        typeof data?.nextPageToken === 'string' && data.nextPageToken
+          ? data.nextPageToken
+          : undefined;
+      if (!pageToken) break;
+    }
+    return items;
+  }
+
   async listAccounts(): Promise<GoogleAccountRaw[]> {
-    const data = await this.getJson<{ accounts?: GoogleAccountRaw[] }>(
-      '/accounts/v1beta/accounts'
+    return this.listPaged<GoogleAccountRaw>(
+      '/accounts/v1/accounts',
+      'accounts',
+      MAX_ACCOUNT_PAGES
     );
-    return data.accounts ?? [];
   }
 
   async listAccountIssues(accountId: string): Promise<GoogleAccountIssueRaw[]> {
     const cleanId = accountId.replace(/^accounts\//, '');
     const data = await this.getJson<{ accountIssues?: GoogleAccountIssueRaw[] }>(
-      `/accounts/v1beta/accounts/${encodeURIComponent(cleanId)}/issues`
+      `/accounts/v1/accounts/${encodeURIComponent(cleanId)}/issues`
     );
     return data.accountIssues ?? [];
   }
@@ -171,16 +241,17 @@ export class GoogleMerchantClient {
   async listDataSources(accountId: string): Promise<GoogleDataSourceRaw[]> {
     const cleanId = accountId.replace(/^accounts\//, '');
     const data = await this.getJson<{ dataSources?: GoogleDataSourceRaw[] }>(
-      `/datasources/v1beta/accounts/${encodeURIComponent(cleanId)}/dataSources`
+      `/datasources/v1/accounts/${encodeURIComponent(cleanId)}/dataSources`
     );
     return data.dataSources ?? [];
   }
 
   async listProducts(accountId: string): Promise<GoogleProductRaw[]> {
     const cleanId = accountId.replace(/^accounts\//, '');
-    const data = await this.getJson<{ products?: GoogleProductRaw[] }>(
-      `/products/v1beta/accounts/${encodeURIComponent(cleanId)}/products`
+    return this.listPaged<GoogleProductRaw>(
+      `/products/v1/accounts/${encodeURIComponent(cleanId)}/products`,
+      'products',
+      MAX_PRODUCT_PAGES
     );
-    return data.products ?? [];
   }
 }
