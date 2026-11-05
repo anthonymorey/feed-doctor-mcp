@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "net.theownersdesk.feeds/feed-doctor-mcp",
-  "title": "FeedDoctor MCP \u2014 Google & Microsoft Shopping Feed Diagnostics",
-  "description": "Read-only, stateless MCP server combining Google Merchant API v1, Microsoft Merchant Center Content API, and live landing-page schema checks to diagnose product disapprovals.",
+  "title": "FeedDoctor: Merchant Center feed diagnostics",
+  "description": "Read-only Google Merchant Center feed diagnostics, landing-page checks, ranked fix plans. Bing soon.",
   "version": "0.1.0",
   "websiteUrl": "https://feeds.theownersdesk.net",
   "repository": {
@@ -12,7 +12,15 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://feeds.theownersdesk.net/mcp?src=mcp-reg"
+      "url": "https://feeds.theownersdesk.net/mcp?src=mcp-reg",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer <token> from https://feeds.theownersdesk.net/connect/google (encrypted, expires in 30 days)",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
     }
   ]
 }

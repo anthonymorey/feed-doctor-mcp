@@ -1,0 +1,447 @@
+{
+  "serverInfo": {
+    "name": "feed-doctor-mcp",
+    "title": "FeedDoctor",
+    "version": "0.1.0"
+  },
+  "description": "Read-only Google Merchant Center feed diagnostics for MCP clients: disapprovals, product-level diagnosis, landing-page price/availability mismatch checks and ranked fix plans. Microsoft Merchant Center (Bing) cross-check coming soon on the hosted service.",
+  "homepage": "https://feeds.theownersdesk.net/?src=smithery",
+  "transport": {
+    "type": "streamable-http",
+    "url": "https://feeds.theownersdesk.net/mcp"
+  },
+  "authentication": {
+    "required": true,
+    "schemes": [
+      "bearer"
+    ],
+    "instructions": "Connect your Google Merchant Center account at https://feeds.theownersdesk.net/connect/google to get an encrypted bearer token, then send it as Authorization: Bearer <token>."
+  },
+  "tools": [
+    {
+      "name": "list_accounts",
+      "title": "List Merchant Center Accounts & Stores",
+      "description": "Lists accessible Google Merchant Center accounts (Merchant API v1) and Microsoft Merchant Center stores (Bing Content API) normalized to one schema. Read-only and stateless.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "platform": {
+            "default": "both",
+            "description": "Which platform(s) to query: \"google\", \"microsoft\", or \"both\".",
+            "type": "string",
+            "enum": [
+              "google",
+              "microsoft",
+              "both"
+            ]
+          },
+          "credentials": {
+            "description": "Optional per-call credential overrides. If omitted, credentials are resolved from the HTTP Authorization Bearer token / headers or self-host environment variables.",
+            "type": "object",
+            "properties": {
+              "googleAccessToken": {
+                "description": "Optional per-request Google OAuth 2.0 access token (scope: https://www.googleapis.com/auth/content).",
+                "type": "string"
+              },
+              "googleMerchantAccountId": {
+                "description": "Optional Google Merchant Center account ID (e.g., \"123456789\").",
+                "type": "string"
+              },
+              "microsoftAccessToken": {
+                "description": "Optional per-request Microsoft Advertising OAuth 2.0 access token (scope: https://ads.microsoft.com/msads.manage).",
+                "type": "string"
+              },
+              "microsoftDeveloperToken": {
+                "description": "Optional Microsoft Advertising Developer Token.",
+                "type": "string"
+              },
+              "microsoftMerchantId": {
+                "description": "Optional Microsoft Merchant Center Store ID (e.g., \"987654\").",
+                "type": "string"
+              },
+              "microsoftCustomerId": {
+                "description": "Optional Microsoft Advertising Customer ID.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "title": "List Merchant Center Accounts & Stores",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "feed_health_summary",
+      "title": "Feed & Account Health Summary",
+      "description": "Combines Google Merchant API v1 and Microsoft Merchant Center account issues, feed/dataSource upload status, product approval counts, and top disapproval causes into a single normalized summary.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "platform": {
+            "default": "both",
+            "description": "Platform scope: \"google\", \"microsoft\", or \"both\".",
+            "type": "string",
+            "enum": [
+              "google",
+              "microsoft",
+              "both"
+            ]
+          },
+          "googleAccountId": {
+            "description": "Google Merchant Center account ID (defaults to primary resolved account).",
+            "type": "string"
+          },
+          "microsoftMerchantId": {
+            "description": "Microsoft Merchant Center store ID (defaults to primary resolved store).",
+            "type": "string"
+          },
+          "credentials": {
+            "description": "Optional per-call credential overrides. If omitted, credentials are resolved from the HTTP Authorization Bearer token / headers or self-host environment variables.",
+            "type": "object",
+            "properties": {
+              "googleAccessToken": {
+                "description": "Optional per-request Google OAuth 2.0 access token (scope: https://www.googleapis.com/auth/content).",
+                "type": "string"
+              },
+              "googleMerchantAccountId": {
+                "description": "Optional Google Merchant Center account ID (e.g., \"123456789\").",
+                "type": "string"
+              },
+              "microsoftAccessToken": {
+                "description": "Optional per-request Microsoft Advertising OAuth 2.0 access token (scope: https://ads.microsoft.com/msads.manage).",
+                "type": "string"
+              },
+              "microsoftDeveloperToken": {
+                "description": "Optional Microsoft Advertising Developer Token.",
+                "type": "string"
+              },
+              "microsoftMerchantId": {
+                "description": "Optional Microsoft Merchant Center Store ID (e.g., \"987654\").",
+                "type": "string"
+              },
+              "microsoftCustomerId": {
+                "description": "Optional Microsoft Advertising Customer ID.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "title": "Feed & Account Health Summary",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "list_disapprovals",
+      "title": "List Disapprovals & Item Issues with Diagnostics",
+      "description": "Lists disapproved, demoted, or warning-flagged products across Google Merchant Center and Microsoft Merchant Center, mapping every issue code to plain-English cause, affected attribute, offending value, fix steps, and official help page link.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "platform": {
+            "default": "both",
+            "description": "Platform filter: \"google\", \"microsoft\", or \"both\".",
+            "type": "string",
+            "enum": [
+              "google",
+              "microsoft",
+              "both"
+            ]
+          },
+          "severity": {
+            "default": "all",
+            "description": "Filter by issue severity.",
+            "type": "string",
+            "enum": [
+              "all",
+              "disapproval",
+              "demotion",
+              "warning"
+            ]
+          },
+          "issueCode": {
+            "description": "Optional filter for a specific issue code (e.g., \"price_mismatch\", \"invalid_gtin\").",
+            "type": "string"
+          },
+          "attribute": {
+            "description": "Optional filter by affected feed attribute (e.g., \"price\", \"gtin\", \"image_link\").",
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "description": "Maximum number of affected product records to return.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "googleAccountId": {
+            "type": "string"
+          },
+          "microsoftMerchantId": {
+            "type": "string"
+          },
+          "credentials": {
+            "description": "Optional per-call credential overrides. If omitted, credentials are resolved from the HTTP Authorization Bearer token / headers or self-host environment variables.",
+            "type": "object",
+            "properties": {
+              "googleAccessToken": {
+                "description": "Optional per-request Google OAuth 2.0 access token (scope: https://www.googleapis.com/auth/content).",
+                "type": "string"
+              },
+              "googleMerchantAccountId": {
+                "description": "Optional Google Merchant Center account ID (e.g., \"123456789\").",
+                "type": "string"
+              },
+              "microsoftAccessToken": {
+                "description": "Optional per-request Microsoft Advertising OAuth 2.0 access token (scope: https://ads.microsoft.com/msads.manage).",
+                "type": "string"
+              },
+              "microsoftDeveloperToken": {
+                "description": "Optional Microsoft Advertising Developer Token.",
+                "type": "string"
+              },
+              "microsoftMerchantId": {
+                "description": "Optional Microsoft Merchant Center Store ID (e.g., \"987654\").",
+                "type": "string"
+              },
+              "microsoftCustomerId": {
+                "description": "Optional Microsoft Advertising Customer ID.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "title": "List Disapprovals & Item Issues with Diagnostics",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "diagnose_product",
+      "title": "Diagnose Single Product SKU Across Feeds & Landing Page",
+      "description": "Deep-dives into a single SKU / offerId across Google Merchant Center, Microsoft Merchant Center, and (optionally) fetches the merchant’s own public landing page URL to check JSON-LD / meta price and availability mismatches.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The merchant SKU / offerId to diagnose (e.g., \"SKU-101\")."
+          },
+          "checkLandingPage": {
+            "default": false,
+            "description": "When true, fetches the merchant’s own public product URL (link) to compare live JSON-LD / meta price and availability against the feeds.",
+            "type": "boolean"
+          },
+          "googleAccountId": {
+            "type": "string"
+          },
+          "microsoftMerchantId": {
+            "type": "string"
+          },
+          "credentials": {
+            "description": "Optional per-call credential overrides. If omitted, credentials are resolved from the HTTP Authorization Bearer token / headers or self-host environment variables.",
+            "type": "object",
+            "properties": {
+              "googleAccessToken": {
+                "description": "Optional per-request Google OAuth 2.0 access token (scope: https://www.googleapis.com/auth/content).",
+                "type": "string"
+              },
+              "googleMerchantAccountId": {
+                "description": "Optional Google Merchant Center account ID (e.g., \"123456789\").",
+                "type": "string"
+              },
+              "microsoftAccessToken": {
+                "description": "Optional per-request Microsoft Advertising OAuth 2.0 access token (scope: https://ads.microsoft.com/msads.manage).",
+                "type": "string"
+              },
+              "microsoftDeveloperToken": {
+                "description": "Optional Microsoft Advertising Developer Token.",
+                "type": "string"
+              },
+              "microsoftMerchantId": {
+                "description": "Optional Microsoft Merchant Center Store ID (e.g., \"987654\").",
+                "type": "string"
+              },
+              "microsoftCustomerId": {
+                "description": "Optional Microsoft Advertising Customer ID.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "sku"
+        ]
+      },
+      "annotations": {
+        "title": "Diagnose Single Product SKU Across Feeds & Landing Page",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "compare_platforms",
+      "title": "Compare Google vs. Microsoft Product Feeds",
+      "description": "Cross-checks Google Merchant Center and Microsoft Merchant Center feeds for the same SKUs: detects SKUs approved on one platform but disapproved on the other, price/availability mismatches between feeds and landing pages, and missing GTIN/brand backfill opportunities.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "checkLandingPagesForDiscrepancies": {
+            "default": false,
+            "description": "When true, fetches the merchant’s public product landing page for SKUs that have disapprovals or price/availability discrepancies.",
+            "type": "boolean"
+          },
+          "maxLandingPageChecks": {
+            "default": 5,
+            "description": "Maximum number of public product URLs to fetch when checkLandingPagesForDiscrepancies is true.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          },
+          "googleAccountId": {
+            "type": "string"
+          },
+          "microsoftMerchantId": {
+            "type": "string"
+          },
+          "credentials": {
+            "description": "Optional per-call credential overrides. If omitted, credentials are resolved from the HTTP Authorization Bearer token / headers or self-host environment variables.",
+            "type": "object",
+            "properties": {
+              "googleAccessToken": {
+                "description": "Optional per-request Google OAuth 2.0 access token (scope: https://www.googleapis.com/auth/content).",
+                "type": "string"
+              },
+              "googleMerchantAccountId": {
+                "description": "Optional Google Merchant Center account ID (e.g., \"123456789\").",
+                "type": "string"
+              },
+              "microsoftAccessToken": {
+                "description": "Optional per-request Microsoft Advertising OAuth 2.0 access token (scope: https://ads.microsoft.com/msads.manage).",
+                "type": "string"
+              },
+              "microsoftDeveloperToken": {
+                "description": "Optional Microsoft Advertising Developer Token.",
+                "type": "string"
+              },
+              "microsoftMerchantId": {
+                "description": "Optional Microsoft Merchant Center Store ID (e.g., \"987654\").",
+                "type": "string"
+              },
+              "microsoftCustomerId": {
+                "description": "Optional Microsoft Advertising Customer ID.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "title": "Compare Google vs. Microsoft Product Feeds",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "fix_plan",
+      "title": "Generate Prioritized Feed Fix Plan & Supplemental Patch Preview",
+      "description": "Generates a prioritized, step-by-step remediation plan across Google Merchant Center and Microsoft Merchant Center, complete with copy-ready supplemental feed patch rows and official documentation links.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "platform": {
+            "default": "both",
+            "description": "Platform scope: \"google\", \"microsoft\", or \"both\".",
+            "type": "string",
+            "enum": [
+              "google",
+              "microsoft",
+              "both"
+            ]
+          },
+          "checkLandingPages": {
+            "default": false,
+            "description": "When true, fetches public landing pages for disapproved SKUs to populate exact live prices/availabilities in the supplemental patch preview.",
+            "type": "boolean"
+          },
+          "maxLandingPageChecks": {
+            "default": 5,
+            "description": "Maximum number of public product URLs to fetch when checkLandingPages is true.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          },
+          "googleAccountId": {
+            "type": "string"
+          },
+          "microsoftMerchantId": {
+            "type": "string"
+          },
+          "credentials": {
+            "description": "Optional per-call credential overrides. If omitted, credentials are resolved from the HTTP Authorization Bearer token / headers or self-host environment variables.",
+            "type": "object",
+            "properties": {
+              "googleAccessToken": {
+                "description": "Optional per-request Google OAuth 2.0 access token (scope: https://www.googleapis.com/auth/content).",
+                "type": "string"
+              },
+              "googleMerchantAccountId": {
+                "description": "Optional Google Merchant Center account ID (e.g., \"123456789\").",
+                "type": "string"
+              },
+              "microsoftAccessToken": {
+                "description": "Optional per-request Microsoft Advertising OAuth 2.0 access token (scope: https://ads.microsoft.com/msads.manage).",
+                "type": "string"
+              },
+              "microsoftDeveloperToken": {
+                "description": "Optional Microsoft Advertising Developer Token.",
+                "type": "string"
+              },
+              "microsoftMerchantId": {
+                "description": "Optional Microsoft Merchant Center Store ID (e.g., \"987654\").",
+                "type": "string"
+              },
+              "microsoftCustomerId": {
+                "description": "Optional Microsoft Advertising Customer ID.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "title": "Generate Prioritized Feed Fix Plan & Supplemental Patch Preview",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    }
+  ],
+  "resources": [],
+  "prompts": []
+}
